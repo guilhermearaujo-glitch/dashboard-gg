@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Operação G&G</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e1e4e8; min-height: 100vh; }
+
+/* LOGIN */
+#login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #0f1117 0%, #1a1f2e 100%); }
+.login-card { background: #1c2030; border: 1px solid #2d3348; border-radius: 16px; padding: 48px 40px; width: 360px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
+.login-logo { font-size: 2.8rem; margin-bottom: 8px; }
+.login-title { font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+.login-sub { font-size: 0.85rem; color: #8b949e; margin-bottom: 32px; }
+.login-card input { width: 100%; padding: 14px 16px; background: #0f1117; border: 1.5px solid #2d3348; border-radius: 10px; color: #e1e4e8; font-size: 1.1rem; text-align: center; letter-spacing: 6px; margin-bottom: 16px; outline: none; transition: border-color 0.2s; }
+.login-card input:focus { border-color: #ee4d2d; }
+.login-btn { width: 100%; padding: 14px; background: #ee4d2d; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+.login-btn:hover { opacity: 0.88; }
+.login-error { color: #f85149; font-size: 0.85rem; margin-top: 12px; display: none; }
+
+/* APP */
+#app { display: none; }
+
+header { background: #1c2030; border-bottom: 1px solid #2d3348; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.hdr-left { display: flex; align-items: center; gap: 10px; }
+.hdr-logo { font-size: 1.3rem; }
+.hdr-title { font-size: 0.95rem; font-weight: 700; color: #fff; }
+.hdr-sub { font-size: 0.72rem; color: #8b949e; }
+.hdr-right { display: flex; align-items: center; gap: 12px; }
+.upd-label { font-size: 0.72rem; color: #8b949e; }
+.logout-btn { padding: 5px 12px; background: transparent; border: 1px solid #2d3348; border-radius: 6px; color: #8b949e; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+.logout-btn:hover { border-color: #ee4d2d; color: #ee4d2d; }
+
+nav { background: #1c2030; border-bottom: 1px solid #2d3348; padding: 0 28px; display: flex; overflow-x: auto; }
+nav button { padding: 13px 18px; background: none; border: none; border-bottom: 2px solid transparent; color: #8b949e; font-size: 0.85rem; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+nav button.active { color: #ee4d2d; border-bottom-color: #ee4d2d; }
+nav button:hover:not(.active) { color: #e1e4e8; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+.section { display: none; }
+.section.active { display: block; }
+
+.sec-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.sec-header h2 { font-size: 1.15rem; font-weight: 700; color: #fff; }
+.sec-header p { font-size: 0.8rem; color: #8b949e; margin-top: 3px; }
+
+/* INEGOCIÁVEIS BANNER */
+.ineg-banner { background: linear-gradient(135deg, #1a0a08 0%, #1c1020 100%); border: 1px solid #3d1a15; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+.ineg-title { font-size: 0.75rem; font-weight: 700; color: #ee4d2d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.ineg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media(max-width:700px){ .ineg-grid { grid-template-columns: repeat(2,1fr); } }
+.ineg-card { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.06); }
+.ineg-label { font-size: 0.7rem; color: #8b949e; margin-bottom: 4px; }
+.ineg-value { font-size: 1.4rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.ineg-status { font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.status-ok { color: #3fb950; }
+.status-warn { color: #d29922; }
+.status-bad { color: #f85149; }
+
+/* CARDS GRID */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.card { background: #1c2030; border: 1px solid #2d3348; border-radius: 12px; padding: 18px; position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--acc, #ee4d2d); }
+.card-lbl { font-size: 0.72rem; color: #8b949e; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.card-val { font-size: 1.7rem; font-weight: 800; color: #fff; line-height: 1; margin-bottom: 5px; }
+.card-icon { position: absolute; top: 14px; right: 14px; font-size: 1.2rem; opacity: 0.25; }
+.card-prog-wrap { margin-top: 8px; }
+.card-prog-row { display: flex; justify-content: space-between; font-size: 0.68rem; color: #8b949e; margin-bottom: 3px; }
+.card-prog-bar { height: 3px; background: #2d3348; border-radius: 2px; overflow: hidden; }
+.card-prog-fill { height: 100%; border-radius: 2px; background: var(--acc, #ee4d2d); transition: width 0.7s ease; }
+.card-prog-fill.warn { background: #d29922; }
+.card-prog-fill.bad { background: #f85149; }
+.card-meta { font-size: 0.72rem; color: #8b949e; }
+
+/* CHARTS */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+@media(max-width:768px){ .charts-grid { grid-template-columns: 1fr; } }
+.chart-card { background: #1c2030; border: 1px solid #2d3348; border-radius: 12px; padding: 18px; }
+.chart-card h3 { font-size: 0.78rem; font-weight: 600; color: #8b949e; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.chart-card canvas { max-height: 200px; }
+.chart-card.full { grid-column: 1 / -1; }
+
+/* TABLES */
+.tbl-card { background: #1c2030; border: 1px solid #2d3348; border-radius: 12px; padding: 18px; margin-bottom: 16px; overflow-x: auto; }
+.tbl-card h3 { font-size: 0.78rem; font-weight: 600; color: #8b949e; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th { text-align: left; padding: 7px 10px; color: #8b949e; font-weight: 500; font-size: 0.75rem; border-bottom: 1px solid #2d3348; white-space: nowrap; }
+td { padding: 9px 10px; border-bottom: 1px solid #1a1f2e; color: #e1e4e8; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #252b3d; }
+.badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.bg { background: rgba(63,185,80,.15); color: #3fb950; }
+.br { background: rgba(248,81,73,.15); color: #f85149; }
+.by { background: rgba(210,153,34,.15); color: #d29922; }
+.bb { background: rgba(88,166,255,.15); color: #58a6ff; }
+
+/* METAS */
+.metas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.meta-card { background: #1c2030; border: 1px solid #2d3348; border-radius: 12px; padding: 18px; }
+.meta-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.meta-name { font-size: 0.85rem; font-weight: 600; color: #e1e4e8; }
+.meta-cat { font-size: 0.68rem; color: #8b949e; background: #0f1117; padding: 2px 7px; border-radius: 4px; }
+.meta-vals { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; }
+.meta-atual { font-size: 1.3rem; font-weight: 800; color: #fff; }
+.meta-pct { font-size: 0.78rem; font-weight: 700; }
+.meta-tgt { font-size: 0.7rem; color: #8b949e; margin-bottom: 6px; }
+
+/* ALERTAS */
+.alertas { margin-bottom: 20px; }
+.alerta { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 8px; margin-bottom: 6px; font-size: 0.83rem; }
+.alerta-r { background: rgba(248,81,73,.1); border: 1px solid rgba(248,81,73,.3); }
+.alerta-y { background: rgba(210,153,34,.1); border: 1px solid rgba(210,153,34,.3); }
+.alerta-g { background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3); }
+.alerta strong { font-weight: 600; }
+
+/* REGISTRO FORM */
+.reg-card { background: #1c2030; border: 1px solid #2d3348; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.reg-card h3 { font-size: 0.85rem; font-weight: 600; color: #e1e4e8; margin-bottom: 16px; }
+.reg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.reg-field label { display: block; font-size: 0.72rem; color: #8b949e; margin-bottom: 5px; }
+.reg-field input, .reg-field select { width: 100%; padding: 9px 10px; background: #0f1117; border: 1px solid #2d3348; border-radius: 8px; color: #e1e4e8; font-size: 0.88rem; outline: none; transition: border-color .2s; }
+.reg-field input:focus, .reg-field select:focus { border-color: #ee4d2d; }
+.btn-primary { padding: 10px 22px; background: #ee4d2d; color: white; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+.btn-primary:hover { opacity: .88; }
+.btn-secondary { padding: 10px 22px; background: transparent; color: #8b949e; border: 1px solid #2d3348; border-radius: 8px; font-size: 0.88rem; cursor: pointer; margin-left: 8px; transition: all .2s; }
+.btn-secondary:hover { border-color: #8b949e; color: #e1e4e8; }
+.save-ok { font-size: 0.78rem; color: #3fb950; margin-left: 10px; display: none; }
+
+/* CONFIG */
+.cfg-section { margin-bottom: 20px; }
+.cfg-section h3 { font-size: 0.85rem; font-weight: 600; color: #e1e4e8; margin-bottom: 14px; }
+.cfg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.cfg-field label { display: block; font-size: 0.72rem; color: #8b949e; margin-bottom: 5px; }
+.cfg-field input { width: 100%; padding: 9px 10px; background: #0f1117; border: 1px solid #2d3348; border-radius: 8px; color: #e1e4e8; font-size: 0.88rem; outline: none; transition: border-color .2s; }
+.cfg-field input:focus { border-color: #ee4d2d; }
+
+.empty { text-align: center; padding: 40px 20px; color: #8b949e; font-size: 0.85rem; }
+.empty .ico { font-size: 2.5rem; margin-bottom: 10px; opacity: .35; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0f1117; }
+::-webkit-scrollbar-thumb { background: #2d3348; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">📦</div>
+    <div class="login-title">Operação G&G</div>
+    <div class="login-sub">Dashboard de Vendas — Uso interno</div>
+    <input type="password" id="pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">Entrar</button>
+    <div class="login-error" id="login-err">Senha incorreta.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="hdr-left">
+      <span class="hdr-logo">📦</span>
+      <div>
+        <div class="hdr-title">Operação G&G</div>
+        <div class="hdr-sub">Dashboard de Vendas Online</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span class="upd-label" id="upd-lbl"></span>
+      <button class="logout-btn" onclick="logout()">Sair</button>
+    </div>
+  </header>
+  <nav>
+    <button class="active" onclick="go('geral',this)">📊 Visão Geral</button>
+    <button onclick="go('shopee',this)">🛍️ Shopee</button>
+    <button onclick="go('canais',this)">🌐 Canais</button>
+    <button onclick="go('produtos',this)">📦 Produtos</button>
+    <button onclick="go('metas',this)">🎯 Metas</button>
+    <button onclick="go('registro',this)">✏️ Registrar</button>
+    <button onclick="go('config',this)">⚙️ Config</button>
+  </nav>
+
+  <div class="container">
+
+    <!-- GERAL -->
+    <div class="section active" id="geral">
+      <div class="sec-header"><div><h2>Visão Geral</h2><p>Consolidado de todos os canais</p></div></div>
+      <div class="ineg-banner">
+        <div class="ineg-title">🔴 KPIs Inegociáveis — se vermelho, para tudo e resolve</div>
+        <div class="ineg-grid" id="ineg-grid"></div>
+      </div>
+      <div id="alertas-box" class="alertas"></div>
+      <div class="cards-grid" id="cards-geral"></div>
+      <div class="charts-grid">
+        <div class="chart-card"><h3>Faturamento Semanal</h3><canvas id="ch-fat-sem"></canvas></div>
+        <div class="chart-card"><h3>Margem Líquida (%)</h3><canvas id="ch-margem"></canvas></div>
+        <div class="chart-card full"><h3>Evolução Mensal — Faturamento vs. Lucro</h3><canvas id="ch-mensal"></canvas></div>
+      </div>
+    </div>
+
+    <!-- SHOPEE -->
+    <div class="section" id="shopee">
+      <div class="sec-header"><div><h2>🛍️ Shopee</h2><p>Métricas operacionais da loja</p></div></div>
+      <div class="cards-grid" id="cards-shopee"></div>
+      <div class="tbl-card">
+        <h3>Histórico Semanal</h3>
+        <table><thead><tr><th>Semana</th><th>Pedidos</th><th>Faturamento</th><th>Margem</th><th>Lucro</th><th>Avaliação</th><th>Chat</th><th>Envio Prazo</th><th>Cancelamentos</th></tr></thead>
+        <tbody id="tbody-shopee"></tbody></table>
+      </div>
+    </div>
+
+    <!-- CANAIS -->
+    <div class="section" id="canais">
+      <div class="sec-header"><div><h2>🌐 Canais de Venda</h2><p>Performance por plataforma</p></div></div>
+      <div class="charts-grid">
+        <div class="chart-card"><h3>Faturamento por Canal</h3><canvas id="ch-can-fat"></canvas></div>
+        <div class="chart-card"><h3>Pedidos por Canal</h3><canvas id="ch-can-ped"></canvas></div>
+      </div>
+      <div class="tbl-card">
+        <h3>Resumo por Canal</h3>
+        <table><thead><tr><th>Canal</th><th>Status</th><th>Pedidos</th><th>Faturamento</th><th>Margem</th><th>Lucro</th></tr></thead>
+        <tbody id="tbody-canais"></tbody></table>
+      </div>
+    </div>
+
+    <!-- PRODUTOS -->
+    <div class="section" id="produtos">
+      <div class="sec-header"><div><h2>📦 Produtos</h2><p>Performance por SKU em todos os canais</p></div></div>
+      <div class="cards-grid" id="cards-prod"></div>
+      <div class="tbl-card">
+        <h3>Ranking de Produtos</h3>
+        <table><thead><tr><th>#</th><th>Produto</th><th>Canal</th><th>Pedidos/mês</th><th>Faturamento</th><th>Margem</th><th>Status</th></tr></thead>
+        <tbody id="tbody-prod"></tbody></table>
+      </div>
+    </div>
+
+    <!-- METAS -->
+    <div class="section" id="metas">
+      <div class="sec-header"><div><h2>🎯 Metas</h2><p>Progresso em relação aos objetivos</p></div></div>
+      <div class="metas-grid" id="metas-grid"></div>
+      <div class="chart-card" style="margin-bottom:16px"><h3>Faturamento vs. Meta Mensal</h3><canvas id="ch-meta"></canvas></div>
+    </div>
+
+    <!-- REGISTRO -->
+    <div class="section" id="registro">
+      <div class="sec-header"><div><h2>✏️ Registrar Dados</h2><p>Insira os números da semana ou mês</p></div></div>
+      <div class="reg-card">
+        <h3>Nova Entrada Semanal — Shopee</h3>
+        <div class="reg-grid">
+          <div class="reg-field"><label>Período (ex: S1-Jun/26)</label><input id="r-semana" placeholder="S1-Jun/26"></div>
+          <div class="reg-field"><label>Pedidos</label><input type="number" id="r-pedidos" placeholder="0"></div>
+          <div class="reg-field"><label>Faturamento (R$)</label><input type="number" id="r-fat" placeholder="0.00"></div>
+          <div class="reg-field"><label>Margem (%)</label><input type="number" step="0.1" id="r-margem" placeholder="0.0"></div>
+          <div class="reg-field"><label>Avaliação (0–5)</label><input type="number" step="0.1" id="r-aval" placeholder="5.0"></div>
+          <div class="reg-field"><label>Resp. Chat (%)</label><input type="number" id="r-chat" placeholder="100"></div>
+          <div class="reg-field"><label>Envio no Prazo (%)</label><input type="number" id="r-envio" placeholder="100"></div>
+          <div class="reg-field"><label>Cancelamentos (%)</label><input type="number" step="0.1" id="r-cancel" placeholder="0.0"></div>
+          <div class="reg-field"><label>Canal</label>
+            <select id="r-canal"><option value="Shopee">Shopee</option><option value="Mercado Livre">Mercado Livre</option><option value="Outro">Outro</option></select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="salvarSemana()">💾 Salvar Entrada</button>
+        <button class="btn-secondary" onclick="limparForm()">Limpar</button>
+        <span class="save-ok" id="save-sem-ok">✓ Salvo!</span>
+      </div>
+
+      <div class="reg-card">
+        <h3>Adicionar Produto</h3>
+        <div class="reg-grid">
+          <div class="reg-field"><label>Nome do Produto</label><input id="p-nome" placeholder="Kit 3 Calcinhas..."></div>
+          <div class="reg-field"><label>Canal</label>
+            <select id="p-canal"><option value="Shopee">Shopee</option><option value="Mercado Livre">Mercado Livre</option></select>
+          </div>
+          <div class="reg-field"><label>Pedidos/mês</label><input type="number" id="p-ped" placeholder="0"></div>
+          <div class="reg-field"><label>Faturamento (R$)</label><input type="number" id="p-fat" placeholder="0.00"></div>
+          <div class="reg-field"><label>Margem (%)</label><input type="number" step="0.1" id="p-margem" placeholder="0.0"></div>
+          <div class="reg-field"><label>Status</label>
+            <select id="p-status"><option value="ativo">Ativo</option><option value="alerta">Alerta</option><option value="inativo">Inativo</option></select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="salvarProduto()">💾 Salvar Produto</button>
+        <span class="save-ok" id="save-prod-ok">✓ Salvo!</span>
+      </div>
+
+      <div class="tbl-card">
+        <h3>Entradas Recentes</h3>
+        <table><thead><tr><th>Período</th><th>Canal</th><th>Pedidos</th><th>Faturamento</th><th>Margem</th><th>Avaliação</th><th>Ação</th></tr></thead>
+        <tbody id="tbody-reg"></tbody></table>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="section" id="config">
+      <div class="sec-header"><div><h2>⚙️ Configurações</h2><p>Metas e parâmetros do negócio</p></div></div>
+      <div class="reg-card cfg-section">
+        <h3>Metas de Faturamento</h3>
+        <div class="cfg-grid">
+          <div class="cfg-field"><label>Meta Faturamento Mês 1 (R$)</label><input type="number" id="c-m1" placeholder="1200"></div>
+          <div class="cfg-field"><label>Meta Faturamento Mês 2 (R$)</label><input type="number" id="c-m2" placeholder="3000"></div>
+          <div class="cfg-field"><label>Meta Faturamento Mês 3 (R$)</label><input type="number" id="c-m3" placeholder="6000"></div>
+          <div class="cfg-field"><label>Meta Faturamento Anual/mês (R$)</label><input type="number" id="c-anual" placeholder="15000"></div>
+        </div>
+      </div>
+      <div class="reg-card cfg-section">
+        <h3>Metas de KPIs Inegociáveis</h3>
+        <div class="cfg-grid">
+          <div class="cfg-field"><label>Meta Pedidos/Semana (M1)</label><input type="number" id="c-ped" placeholder="10"></div>
+          <div class="cfg-field"><label>Meta Margem Líquida (%)</label><input type="number" id="c-margem" placeholder="15"></div>
+          <div class="cfg-field"><label>Meta Avaliação Mínima</label><input type="number" step="0.1" id="c-aval" placeholder="4.8"></div>
+          <div class="cfg-field"><label>Meta Envio no Prazo (%)</label><input type="number" id="c-envio" placeholder="98"></div>
+        </div>
+      </div>
+      <div class="reg-card cfg-section">
+        <h3>Outros KPIs Operacionais</h3>
+        <div class="cfg-grid">
+          <div class="cfg-field"><label>Meta Resposta Chat (%)</label><input type="number" id="c-chat" placeholder="80"></div>
+          <div class="cfg-field"><label>Cancelamento Máx (%)</label><input type="number" step="0.1" id="c-cancel" placeholder="2"></div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="salvarConfig()">Salvar Configurações</button>
+      <span class="save-ok" id="save-cfg-ok">✓ Configurações salvas!</span>
+
+      <div class="reg-card" style="margin-top:16px">
+        <h3>Dados & Exportação</h3>
+        <button class="btn-secondary" onclick="exportarDados()" style="margin-right:8px">📥 Exportar JSON</button>
+        <button class="btn-secondary" onclick="limparHistorico()" style="color:#f85149;border-color:#3d1a15">🗑️ Limpar Histórico</button>
+        <p style="font-size:0.78rem;color:#8b949e;margin-top:12px">O histórico fica salvo no seu navegador (localStorage). Use Exportar JSON para fazer backup antes de limpar.</p>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════
+const SENHA = "sho2026";
+function login() {
+  if (document.getElementById('pwd').value === SENHA) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } else {
+    const e = document.getElementById('login-err');
+    e.style.display = 'block';
+    document.getElementById('pwd').value = '';
+    setTimeout(() => e.style.display = 'none', 3000);
+  }
+}
+function logout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pwd').value = '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// STORAGE — HISTÓRICO PERSISTENTE
+// ══════════════════════════════════════════════════════════════
+const LS_SEMANAS   = 'gg_semanas';
+const LS_PRODUTOS  = 'gg_produtos';
+const LS_CONFIG    = 'gg_config';
+const LS_UPD       = 'gg_upd';
+
+const DEFAULT_CFG = {
+  m1:1200, m2:3000, m3:6000, anual:15000,
+  pedSem:10, margem:15, aval:4.8, envio:98, chat:80, cancel:2
+};
+
+function load(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch{ return def; } }
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+function getData() {
+  return {
+    semanas:  load(LS_SEMANAS, []),
+    produtos: load(LS_PRODUTOS, [
+      { nome: 'Shopee', status: 'ativo', pedidos_mes: 0, faturamento: 0, margem_pct: 0, canal: 'Shopee' }
+    ]),
+    cfg:      load(LS_CONFIG, DEFAULT_CFG),
+    upd:      localStorage.getItem(LS_UPD) || '—'
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════════════════
+function go(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'geral')    renderGeral();
+  if (id === 'shopee')   renderShopee();
+  if (id === 'canais')   renderCanais();
+  if (id === 'produtos') renderProdutos();
+  if (id === 'metas')    renderMetas();
+  if (id === 'registro') renderRegistro();
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#2d3348';
+const COLORS = ['#ee4d2d','#3fb950','#58a6ff','#d29922','#bc8cff','#f0883e'];
+
+const R = (v, d=2) => v == null ? '—' : v.toFixed ? v.toFixed(d) : v;
+const BRL = v => !v && v !== 0 ? '—' : 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const PCT = v => !v && v !== 0 ? '—' : Number(v).toFixed(1)+'%';
+const N   = v => !v && v !== 0 ? '—' : Number(v).toLocaleString('pt-BR');
+const STARS = v => !v ? '—' : Number(v).toFixed(1)+' ⭐';
+
+function pFill(pct) { return pct >= 80 ? '' : pct >= 50 ? 'warn' : 'bad'; }
+function statusColor(v, meta, dir='up') {
+  const r = v / meta * 100;
+  if (dir === 'up')   return r >= 100 ? 'status-ok' : r >= 80 ? 'status-warn' : 'status-bad';
+  return v <= meta ? 'status-ok' : v <= meta * 1.5 ? 'status-warn' : 'status-bad';
+}
+function badgeCls(s) {
+  return { ativo:'bg', inativo:'br', alerta:'by', 'em breve':'bb' }[s] || 'by';
+}
+
+function mkChart(id, type, labels, datasets, opts={}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (ctx._c) ctx._c.destroy();
+  ctx._c = new Chart(ctx, {
+    type, data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},
+      scales: ['pie','doughnut'].includes(type) ? {} : { x:{grid:{color:'#1e2433'}}, y:{grid:{color:'#1e2433'}} },
+      ...opts
+    }
+  });
+}
+
+function emptyChart(id) {
+  mkChart(id,'bar',['Sem dados'],[{data:[0],backgroundColor:'#2d3348'}],{plugins:{legend:{display:false}}});
+}
+
+// ══════════════════════════════════════════════════════════════
+// GERAL
+// ══════════════════════════════════════════════════════════════
+function renderGeral() {
+  const { semanas, cfg } = getData();
+  const ultima = semanas[semanas.length - 1];
+  const totalFat  = semanas.reduce((s,w) => s + (+w.faturamento||0), 0);
+  const totalPed  = semanas.reduce((s,w) => s + (+w.pedidos||0), 0);
+  const avgMargem = semanas.length ? semanas.reduce((s,w) => s+(+w.margem_pct||0),0)/semanas.length : 0;
+  const lucroTotal = semanas.reduce((s,w) => s + (+w.faturamento||0) * (+w.margem_pct||0)/100, 0);
+
+  // Inegociáveis
+  const ineg = [
+    { lbl:'Pedidos/Semana', val: ultima ? N(ultima.pedidos) : '—', meta: cfg.pedSem, atual: ultima?.pedidos||0, dir:'up', suf:'' },
+    { lbl:'Margem Líquida', val: ultima ? PCT(ultima.margem_pct) : '—', meta: cfg.margem, atual: ultima?.margem_pct||0, dir:'up', suf:'%' },
+    { lbl:'Avaliação', val: ultima ? STARS(ultima.avaliacao) : '—', meta: cfg.aval, atual: ultima?.avaliacao||0, dir:'up', suf:'' },
+    { lbl:'Envio no Prazo', val: ultima ? PCT(ultima.envio_prazo) : '—', meta: cfg.envio, atual: ultima?.envio_prazo||0, dir:'up', suf:'%' },
+  ];
+  document.getElementById('ineg-grid').innerHTML = ineg.map(k => {
+    const sc = statusColor(k.atual, k.meta, k.dir);
+    const icon = sc==='status-ok'?'✅':sc==='status-warn'?'⚠️':'🔴';
+    const lbl = sc==='status-ok'?'No alvo':sc==='status-warn'?'Atenção':'Crítico';
+    return `<div class="ineg-card">
+      <div class="ineg-label">${k.lbl}</div>
+      <div class="ineg-value ${sc}">${k.val}</div>
+      <div class="ineg-status ${sc}">${icon} ${lbl} (meta: ${R(k.meta,1)}${k.suf})</div>
+    </div>`;
+  }).join('');
+
+  // Alertas automáticos
+  const al = [];
+  if (ultima) {
+    if (+ultima.margem_pct < 8)  al.push({t:'r', m:`<strong>Margem crítica (${PCT(ultima.margem_pct)})</strong> — abaixo do mínimo de 8%. Produto deve ser reprecificado ou pausado.`});
+    if (+ultima.avaliacao < 4.5) al.push({t:'r', m:`<strong>Avaliação em ${STARS(ultima.avaliacao)}</strong> — Shopee penaliza lojas abaixo de 4.5. Investigar avaliações negativas.`});
+    if (+ultima.envio_prazo < 95) al.push({t:'r', m:`<strong>Envio no prazo em ${PCT(ultima.envio_prazo)}</strong> — Revisitar horário de despacho com Gabriel.`});
+    if (+ultima.resp_chat < 80)  al.push({t:'y', m:`<strong>Resposta do chat em ${PCT(ultima.resp_chat)}</strong> — Ativar respostas automáticas.`});
+    if (+ultima.cancelamentos > 2) al.push({t:'y', m:`<strong>Cancelamentos em ${PCT(ultima.cancelamentos)}</strong> — Verificar estoque e descrição dos anúncios.`});
+    if (+ultima.margem_pct >= cfg.margem && +ultima.avaliacao >= cfg.aval && +ultima.envio_prazo >= cfg.envio)
+      al.push({t:'g', m:`<strong>Todos os KPIs inegociáveis no alvo!</strong> Semana saudável.`});
+  } else {
+    al.push({t:'g', m:`<strong>Bem-vindo!</strong> Registre a primeira semana na aba ✏️ Registrar para ver os indicadores.`});
+  }
+  const cls = {r:'alerta-r',y:'alerta-y',g:'alerta-g'};
+  const ico = {r:'🔴',y:'⚠️',g:'✅'};
+  document.getElementById('alertas-box').innerHTML = al.map(a =>
+    `<div class="alerta ${cls[a.t]}">${ico[a.t]} <span>${a.m}</span></div>`
+  ).join('');
+
+  // Cards gerais
+  const c = [
+    { lbl:'Faturamento Total', val: BRL(totalFat), icon:'💰', meta: totalFat/cfg.m1*100, metaLbl:`Meta M1: ${BRL(cfg.m1)}`, acc:'#ee4d2d' },
+    { lbl:'Pedidos Totais', val: N(totalPed), icon:'📦', meta: totalPed/(cfg.pedSem*4)*100, metaLbl:`Meta: ${cfg.pedSem*4}/mês`, acc:'#3fb950' },
+    { lbl:'Margem Média', val: PCT(avgMargem), icon:'📈', meta: avgMargem/cfg.margem*100, metaLbl:`Meta: ${cfg.margem}%`, acc:'#58a6ff' },
+    { lbl:'Lucro Líquido Total', val: BRL(lucroTotal), icon:'🏆', meta:null, acc:'#d29922' },
+  ];
+  document.getElementById('cards-geral').innerHTML = c.map(x => `
+    <div class="card" style="--acc:${x.acc}">
+      <span class="card-icon">${x.icon}</span>
+      <div class="card-lbl">${x.lbl}</div>
+      <div class="card-val">${x.val}</div>
+      ${x.meta != null ? `
+        <div class="card-prog-wrap">
+          <div class="card-prog-row"><span>${x.metaLbl}</span><span>${Math.min(x.meta,100).toFixed(0)}%</span></div>
+          <div class="card-prog-bar"><div class="card-prog-fill ${pFill(x.meta)}" style="width:${Math.min(x.meta,100)}%"></div></div>
+        </div>` : `<div class="card-meta">Acumulado até agora</div>`}
+    </div>`).join('');
+
+  // Charts
+  if (semanas.length) {
+    mkChart('ch-fat-sem','bar', semanas.map(s=>s.semana),
+      [{label:'Faturamento', data:semanas.map(s=>+s.faturamento||0), backgroundColor:'#ee4d2d88', borderColor:'#ee4d2d', borderWidth:2, borderRadius:4}]);
+    mkChart('ch-margem','line', semanas.map(s=>s.semana),
+      [{label:'Margem %', data:semanas.map(s=>+s.margem_pct||0), borderColor:'#58a6ff', backgroundColor:'#58a6ff22', tension:.4, fill:true}]);
+  } else { emptyChart('ch-fat-sem'); emptyChart('ch-margem'); }
+
+  // Mensal agrupado
+  const meses = {};
+  semanas.forEach(s => {
+    const m = s.semana.replace(/^S\d+-/,'');
+    if (!meses[m]) meses[m] = {fat:0,lucro:0};
+    meses[m].fat += +s.faturamento||0;
+    meses[m].lucro += (+s.faturamento||0) * (+s.margem_pct||0)/100;
+  });
+  const mLbls = Object.keys(meses);
+  if (mLbls.length) {
+    mkChart('ch-mensal','bar', mLbls,
+      [
+        {label:'Faturamento', data:mLbls.map(m=>meses[m].fat), backgroundColor:'#ee4d2d88', borderColor:'#ee4d2d', borderWidth:2, borderRadius:4},
+        {label:'Lucro Líquido', data:mLbls.map(m=>meses[m].lucro), backgroundColor:'#3fb95088', borderColor:'#3fb950', borderWidth:2, borderRadius:4},
+      ]);
+  } else emptyChart('ch-mensal');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SHOPEE
+// ══════════════════════════════════════════════════════════════
+function renderShopee() {
+  const { semanas, cfg } = getData();
+  const sh = semanas.filter(s => !s.canal || s.canal === 'Shopee');
+  const u = sh[sh.length-1];
+  const cards = u ? [
+    { lbl:'Pedidos (ult. semana)', val: N(u.pedidos), icon:'📦', meta: +u.pedidos/cfg.pedSem*100, metaLbl:`Meta: ${cfg.pedSem}/sem`, acc:'#ee4d2d' },
+    { lbl:'Faturamento (ult. sem)', val: BRL(u.faturamento), icon:'💰', meta:null, acc:'#3fb950' },
+    { lbl:'Margem (ult. sem)', val: PCT(u.margem_pct), icon:'📈', meta:+u.margem_pct/cfg.margem*100, metaLbl:`Meta: ${cfg.margem}%`, acc:'#58a6ff' },
+    { lbl:'Avaliação', val: STARS(u.avaliacao), icon:'⭐', meta: u.avaliacao?+u.avaliacao/cfg.aval*100:null, metaLbl:`Meta: ${cfg.aval}`, acc:'#d29922' },
+    { lbl:'Resposta Chat', val: PCT(u.resp_chat), icon:'💬', meta:+u.resp_chat, metaLbl:'Meta: 80%', acc:'#bc8cff' },
+    { lbl:'Envio no Prazo', val: PCT(u.envio_prazo), icon:'🚚', meta:+u.envio_prazo/cfg.envio*100, metaLbl:`Meta: ${cfg.envio}%`, acc:'#3fb950' },
+  ] : [];
+  document.getElementById('cards-shopee').innerHTML = cards.length ? cards.map(x => `
+    <div class="card" style="--acc:${x.acc}">
+      <span class="card-icon">${x.icon}</span>
+      <div class="card-lbl">${x.lbl}</div>
+      <div class="card-val">${x.val}</div>
+      ${x.meta != null ? `
+        <div class="card-prog-wrap">
+          <div class="card-prog-row"><span>${x.metaLbl}</span><span>${Math.min(x.meta,100).toFixed(0)}%</span></div>
+          <div class="card-prog-bar"><div class="card-prog-fill ${pFill(x.meta)}" style="width:${Math.min(x.meta,100)}%"></div></div>
+        </div>` : `<div class="card-meta">Última semana</div>`}
+    </div>`).join('') :
+    `<div class="empty" style="grid-column:1/-1"><div class="ico">📭</div><p>Sem dados ainda. Registre a primeira semana.</p></div>`;
+
+  const tbody = document.getElementById('tbody-shopee');
+  tbody.innerHTML = sh.length ? [...sh].reverse().map(s => `<tr>
+    <td>${s.semana}</td><td>${N(s.pedidos)}</td><td>${BRL(s.faturamento)}</td>
+    <td>${PCT(s.margem_pct)}</td><td>${BRL((+s.faturamento||0)*(+s.margem_pct||0)/100)}</td>
+    <td>${STARS(s.avaliacao)}</td><td>${PCT(s.resp_chat)}</td><td>${PCT(s.envio_prazo)}</td><td>${PCT(s.cancelamentos)}</td>
+  </tr>`).join('') : `<tr><td colspan="9" style="text-align:center;color:#8b949e;padding:20px">Sem registros ainda</td></tr>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// CANAIS
+// ══════════════════════════════════════════════════════════════
+function renderCanais() {
+  const { semanas } = getData();
+  const porCanal = {};
+  semanas.forEach(s => {
+    const c = s.canal || 'Shopee';
+    if (!porCanal[c]) porCanal[c] = {pedidos:0, faturamento:0, margens:[]};
+    porCanal[c].pedidos += +s.pedidos||0;
+    porCanal[c].faturamento += +s.faturamento||0;
+    if (s.margem_pct) porCanal[c].margens.push(+s.margem_pct);
+  });
+  const cLbls = Object.keys(porCanal);
+  if (!cLbls.includes('Shopee')) { porCanal['Shopee'] = {pedidos:0,faturamento:0.01,margens:[]}; cLbls.push('Shopee'); }
+  if (!cLbls.includes('Mercado Livre')) { porCanal['Mercado Livre'] = {pedidos:0,faturamento:0.01,margens:[],emBreve:true}; cLbls.push('Mercado Livre'); }
+
+  mkChart('ch-can-fat','doughnut', cLbls, [{data:cLbls.map(c=>porCanal[c].faturamento||0.01), backgroundColor:COLORS, borderWidth:0}]);
+  mkChart('ch-can-ped','doughnut', cLbls, [{data:cLbls.map(c=>porCanal[c].pedidos||0.01), backgroundColor:COLORS, borderWidth:0}]);
+
+  document.getElementById('tbody-canais').innerHTML = cLbls.map(c => {
+    const d = porCanal[c];
+    const avg = d.margens.length ? d.margens.reduce((a,b)=>a+b,0)/d.margens.length : 0;
+    const st = d.emBreve ? 'em breve' : d.faturamento > 0.01 ? 'ativo' : 'em breve';
+    return `<tr>
+      <td><strong>${c}</strong></td>
+      <td><span class="badge ${badgeCls(st)}">${st}</span></td>
+      <td>${N(d.pedidos)}</td><td>${BRL(d.faturamento > 0.01 ? d.faturamento : 0)}</td>
+      <td>${avg ? PCT(avg) : '—'}</td>
+      <td>${d.faturamento > 0.01 && avg ? BRL(d.faturamento * avg/100) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// PRODUTOS
+// ══════════════════════════════════════════════════════════════
+function renderProdutos() {
+  const { produtos } = getData();
+  const ativos = produtos.filter(p=>p.status==='ativo');
+  const melhorMargem = produtos.length ? Math.max(...produtos.map(p=>+p.margem_pct||0)) : 0;
+  const estrela = [...produtos].sort((a,b)=>(+b.faturamento||0)-(+a.faturamento||0))[0];
+
+  document.getElementById('cards-prod').innerHTML = `
+    <div class="card" style="--acc:#3fb950"><span class="card-icon">✅</span><div class="card-lbl">Produtos Ativos</div><div class="card-val">${ativos.length}</div></div>
+    <div class="card" style="--acc:#d29922"><span class="card-icon">⭐</span><div class="card-lbl">Produto Estrela</div><div class="card-val" style="font-size:1rem">${estrela?.nome?.split(' ').slice(0,3).join(' ') || '—'}</div></div>
+    <div class="card" style="--acc:#58a6ff"><span class="card-icon">📈</span><div class="card-lbl">Melhor Margem</div><div class="card-val">${PCT(melhorMargem)}</div></div>
+  `;
+
+  const sorted = [...produtos].sort((a,b)=>(+b.faturamento||0)-(+a.faturamento||0));
+  document.getElementById('tbody-prod').innerHTML = sorted.length ?
+    sorted.map((p,i) => `<tr>
+      <td>${i+1}</td><td><strong>${p.nome}</strong></td><td>${p.canal}</td>
+      <td>${N(p.pedidos_mes)}</td><td>${BRL(p.faturamento)}</td><td>${PCT(p.margem_pct)}</td>
+      <td><span class="badge ${badgeCls(p.status)}">${p.status}</span></td>
+    </tr>`).join('') :
+    `<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:20px">Sem produtos cadastrados</td></tr>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// METAS
+// ══════════════════════════════════════════════════════════════
+function renderMetas() {
+  const { semanas, cfg } = getData();
+  const totalFat = semanas.reduce((s,w)=>s+(+w.faturamento||0),0);
+  const totalPed = semanas.reduce((s,w)=>s+(+w.pedidos||0),0);
+  const avgM = semanas.length ? semanas.reduce((s,w)=>s+(+w.margem_pct||0),0)/semanas.length : 0;
+  const u = semanas[semanas.length-1];
+
+  const metas = [
+    { nome:'Faturamento Mês 1', cat:'🔴 Ineg.', atual:totalFat, meta:cfg.m1, fmt:BRL },
+    { nome:'Faturamento Mês 2', cat:'🟡 Cres.', atual:totalFat, meta:cfg.m2, fmt:BRL },
+    { nome:'Faturamento Mês 3', cat:'🟡 Cres.', atual:totalFat, meta:cfg.m3, fmt:BRL },
+    { nome:'Margem Líquida', cat:'🔴 Ineg.', atual:avgM, meta:cfg.margem, fmt:PCT },
+    { nome:'Pedidos/Semana', cat:'🔴 Ineg.', atual:u?.pedidos||0, meta:cfg.pedSem, fmt:N },
+    { nome:'Avaliação', cat:'🔴 Ineg.', atual:u?.avaliacao||0, meta:cfg.aval, fmt:v=>STARS(v) },
+    { nome:'Envio no Prazo', cat:'🔴 Ineg.', atual:u?.envio_prazo||0, meta:cfg.envio, fmt:PCT },
+    { nome:'Meta Anual/mês', cat:'🟡 Cres.', atual:totalFat, meta:cfg.anual, fmt:BRL },
+  ];
+
+  document.getElementById('metas-grid').innerHTML = metas.map(m => {
+    const pct = m.meta ? Math.min(m.atual/m.meta*100, 100) : 0;
+    const cls = pct>=100?'status-ok':pct>=70?'status-warn':'status-bad';
+    return `<div class="meta-card">
+      <div class="meta-hdr"><span class="meta-name">${m.nome}</span><span class="meta-cat">${m.cat}</span></div>
+      <div class="meta-vals"><span class="meta-atual">${m.fmt(m.atual)}</span><span class="meta-pct ${cls}">${pct.toFixed(0)}%</span></div>
+      <div class="meta-tgt">Meta: ${m.fmt(m.meta)}</div>
+      <div class="card-prog-bar"><div class="card-prog-fill ${pFill(pct)}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  // Chart meta
+  const meses = {};
+  semanas.forEach(s => {
+    const m = s.semana.replace(/^S\d+-/,'');
+    if (!meses[m]) meses[m] = 0;
+    meses[m] += +s.faturamento||0;
+  });
+  const mLbls = Object.keys(meses);
+  if (mLbls.length) {
+    mkChart('ch-meta','line', mLbls,
+      [
+        {label:'Faturamento Real', data:mLbls.map(m=>meses[m]), borderColor:'#ee4d2d', backgroundColor:'#ee4d2d22', tension:.4, fill:true},
+        {label:'Meta M1', data:mLbls.map(()=>cfg.m1), borderColor:'#3fb950', borderDash:[6,3], tension:0, fill:false, pointRadius:0},
+      ]);
+  } else emptyChart('ch-meta');
+}
+
+// ══════════════════════════════════════════════════════════════
+// REGISTRO
+// ══════════════════════════════════════════════════════════════
+function salvarSemana() {
+  const semanas = load(LS_SEMANAS, []);
+  const entry = {
+    semana:     document.getElementById('r-semana').value.trim(),
+    pedidos:    +document.getElementById('r-pedidos').value||0,
+    faturamento:+document.getElementById('r-fat').value||0,
+    margem_pct: +document.getElementById('r-margem').value||0,
+    avaliacao:  +document.getElementById('r-aval').value||0,
+    resp_chat:  +document.getElementById('r-chat').value||0,
+    envio_prazo:+document.getElementById('r-envio').value||0,
+    cancelamentos:+document.getElementById('r-cancel').value||0,
+    canal:      document.getElementById('r-canal').value,
+    ts:         new Date().toISOString()
+  };
+  if (!entry.semana) { alert('Preencha o período.'); return; }
+  semanas.push(entry);
+  save(LS_SEMANAS, semanas);
+  const now = new Date().toLocaleDateString('pt-BR');
+  localStorage.setItem(LS_UPD, now);
+  document.getElementById('upd-lbl').textContent = 'Atualizado em '+now;
+  const ok = document.getElementById('save-sem-ok');
+  ok.style.display = 'inline'; setTimeout(()=>ok.style.display='none', 2500);
+  limparForm();
+  renderRegistro();
+}
+
+function salvarProduto() {
+  const produtos = load(LS_PRODUTOS, []);
+  const p = {
+    nome:        document.getElementById('p-nome').value.trim(),
+    canal:       document.getElementById('p-canal').value,
+    pedidos_mes: +document.getElementById('p-ped').value||0,
+    faturamento: +document.getElementById('p-fat').value||0,
+    margem_pct:  +document.getElementById('p-margem').value||0,
+    status:      document.getElementById('p-status').value,
+  };
+  if (!p.nome) { alert('Preencha o nome do produto.'); return; }
+  const idx = produtos.findIndex(x => x.nome.toLowerCase() === p.nome.toLowerCase() && x.canal === p.canal);
+  if (idx >= 0) produtos[idx] = p; else produtos.push(p);
+  save(LS_PRODUTOS, produtos);
+  const ok = document.getElementById('save-prod-ok');
+  ok.style.display = 'inline'; setTimeout(()=>ok.style.display='none', 2500);
+  ['p-nome','p-ped','p-fat','p-margem'].forEach(id => document.getElementById(id).value = '');
+  renderRegistro();
+}
+
+function limparForm() {
+  ['r-semana','r-pedidos','r-fat','r-margem','r-aval','r-chat','r-envio','r-cancel'].forEach(id => document.getElementById(id).value = '');
+}
+
+function deletarEntrada(ts) {
+  if (!confirm('Remover esta entrada?')) return;
+  const semanas = load(LS_SEMANAS, []).filter(s => s.ts !== ts);
+  save(LS_SEMANAS, semanas);
+  renderRegistro();
+}
+
+function renderRegistro() {
+  const { semanas } = getData();
+  const tbody = document.getElementById('tbody-reg');
+  tbody.innerHTML = semanas.length ? [...semanas].reverse().map(s => `<tr>
+    <td>${s.semana}</td><td>${s.canal||'Shopee'}</td><td>${N(s.pedidos)}</td>
+    <td>${BRL(s.faturamento)}</td><td>${PCT(s.margem_pct)}</td><td>${STARS(s.avaliacao)}</td>
+    <td><button onclick="deletarEntrada('${s.ts}')" style="background:none;border:none;color:#f85149;cursor:pointer;font-size:0.8rem">🗑️ Remover</button></td>
+  </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:20px">Sem registros ainda</td></tr>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════
+function carregarConfig() {
+  const cfg = load(LS_CONFIG, DEFAULT_CFG);
+  document.getElementById('c-m1').value     = cfg.m1;
+  document.getElementById('c-m2').value     = cfg.m2;
+  document.getElementById('c-m3').value     = cfg.m3;
+  document.getElementById('c-anual').value  = cfg.anual;
+  document.getElementById('c-ped').value    = cfg.pedSem;
+  document.getElementById('c-margem').value = cfg.margem;
+  document.getElementById('c-aval').value   = cfg.aval;
+  document.getElementById('c-envio').value  = cfg.envio;
+  document.getElementById('c-chat').value   = cfg.chat;
+  document.getElementById('c-cancel').value = cfg.cancel;
+}
+function salvarConfig() {
+  save(LS_CONFIG, {
+    m1:+document.getElementById('c-m1').value||1200,
+    m2:+document.getElementById('c-m2').value||3000,
+    m3:+document.getElementById('c-m3').value||6000,
+    anual:+document.getElementById('c-anual').value||15000,
+    pedSem:+document.getElementById('c-ped').value||10,
+    margem:+document.getElementById('c-margem').value||15,
+    aval:+document.getElementById('c-aval').value||4.8,
+    envio:+document.getElementById('c-envio').value||98,
+    chat:+document.getElementById('c-chat').value||80,
+    cancel:+document.getElementById('c-cancel').value||2,
+  });
+  const ok = document.getElementById('save-cfg-ok');
+  ok.style.display = 'inline'; setTimeout(()=>ok.style.display='none', 2500);
+  renderGeral(); renderMetas();
+}
+
+function exportarDados() {
+  const d = { semanas:load(LS_SEMANAS,[]), produtos:load(LS_PRODUTOS,[]), config:load(LS_CONFIG,DEFAULT_CFG) };
+  const blob = new Blob([JSON.stringify(d,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `gg-dashboard-${new Date().toISOString().split('T')[0]}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function limparHistorico() {
+  if (!confirm('Isso apaga TODOS os registros semanais. Tem certeza? (Exporte antes como backup)')) return;
+  localStorage.removeItem(LS_SEMANAS);
+  renderGeral(); renderShopee(); renderRegistro();
+  alert('Histórico limpo.');
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+function init() {
+  const upd = localStorage.getItem(LS_UPD) || '—';
+  document.getElementById('upd-lbl').textContent = upd !== '—' ? 'Atualizado em '+upd : 'Sem registros';
+  carregarConfig();
+  renderGeral();
+}
+</script>
+</body>
+</html>
